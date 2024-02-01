@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block head %}
+{% endblock%}
+
+{% block body %}
+<div class='container'>
+    <h1 class="text-center">Literature review and summarization helper</h1>
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-8">
+          <form id="chatgpt-form" method="post" >
+            {% csrf_token %}
+            <br><br>
+            <div class="form-group">
+              <h3>1. Pre-Designed Promp for Specific Task</h3>  
+              <select class="form-select" aria-label="Default select example" name='prompt_option'>
+                <option value="Monograph_CHE">Chlorine Efficacy Relevance</option>
+                <option value="Monograph_CHS">Chlorine Safety Relevance</option>
+                <option selected value="Monograph_P4HB">poly(4-hydroxybutyrate) (P4HB) Relevance</option>
+                <option value="AE_finder">AE events detection</option>
+              </select>
+            </div> <br> 
+              <h3>2. Enter the input (e.g., the abstract)</h3>  
+              
+            <div class="form-group">
+              <textarea
+                class="form-control"
+                name='text'
+                rows="8"
+              >{% if response %}{{ query }}{% else %}{% endif %}
+                </textarea>
+            </div>
+            <!--  
+            <p>Or select one example for demo:</p>
+            <select class="form-select" aria-label="Default select" name='example'>
+                <option selected value="0">None</option>
+                <option value="1">Example of a Relevant Abstract for CHE</option>
+                <option value="2">Example of an Irrelevant Abstract for CHE</option>
+            </select>   -->
+            <br>
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary btn-lg btn-block">Submit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="row justify-content-center my-5" id="response-section">
+        <div class="col-12 col-md-8 col-lg-8">
+          <div class="card">
+            <div class="card-header">Response</div>
+            <div class="card-body" id="response-text">
+                {% if response %}
+                    {% for r in response %}
+                        <p>{{r | safe}}</p>
+                    {% endfor %}
+                {% else %}
+                    <p><font color='blue'>Answer will be shown here</font></p>
+                {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
+{% endblock %}

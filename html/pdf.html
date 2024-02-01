@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block head %}
+{% load static %}
+
+{% endblock%}
+
+{% block body %}
+<div class="container">
+	<div class="container"> 
+    <h2>LabelComp: an internal tool to Compare Two Labeling (PDF) documents and find the recent changes/updates </h2>
+    <div class="alert alert-warning" role="alert">
+        <li>The submission may take as long as several minutes depending on the size of PDF, please be patient. </li>
+        <li>All tested PDFs will be stored in server no matter who uploaded it for an easy re-testing.</li>
+        <li>The current version only supports PLR format labeling documents and we are working on other formats.</li>
+    </div>
+    {% if error_msg %}
+        <div class="alert alert-danger align-items-center" role="alert">
+            {{ error_msg }}
+        </div>
+    {% endif %}
+    <br>
+    <hr>
+    <br>
+    <form method="post" enctype="multipart/form-data" onsubmit="showSpinner()">
+        {% csrf_token %}
+        <div class="row align-items-center">
+            <h5>Upload your Labeling PDFs:</h5>
+            
+            <div class="col-5">
+                <div class="card">
+                  <h5 class="card-header" style='background-color:#FFCCCB'>Old Labeling PDF</h5>
+                  <div class="card-body">
+                      <input class="form-control-file " type="file" name="oldfile" accept="pdf">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" value="1" name="oldfile_format" checked >
+                        <label class="form-check-label" for="flexCheckChecked">
+                          PLR format
+                        </label>
+                      </div> 
+                  </div>   
+                </div>
+            </div>
+            <div class="col-5">
+                <div class="card">
+                  <h5 class="card-header" style='background-color:lightgreen'>New Labeling PDF</h5>
+                  <div class="card-body">
+                      <input class="form-control-file " type="file" name="newfile" accept="pdf">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" value="1" name="newfile_format" checked >
+                        <label class="form-check-label" for="flexCheckChecked">
+                          PLR format
+                        </label>
+                      </div> 
+                  </div>
+                </div>
+            </div>
+            <div class="col-2">
+                <p>*Annotation Methods:
+                    <select class="form-select" aria-label="Default select example" name='ae_method'>
+                      <option selected value="Both">Both</option>
+                      <option value="MedDRA">MedDRA only</option>
+                      <option value="RxBERT">RxBERT only</option>
+                    </select>
+                </p>   
+            </div>    
+        </div>
+
+        <br>    <hr>   <br>
+        
+        <div>
+            <h5>Or, select from existed batabase:</h5>
+            <div class = 'row align-items-center'>
+            <div class = 'col-10'>
+                <div class = 'row'>
+                    <div class="col-4">
+                        <p>Old Labeling PDF:</p>
+                    </div>
+                    <div class='col'>
+                        <select class="form-select" aria-label="Old Labeling File" name='old_pdf' id='old_pdf'>
+                        </select>
+                    </div>
+                </div>
+                <div class = 'row'>
+                    <div class="col-4">
+                        <p>New Labeling PDF:</p>
+                    </div>
+                    <div class="col">
+                        <select class="form-select" aria-label="New Labeling File" name='new_pdf' id='new_pdf'>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class='col-2'>
+                <button class="btn btn-primary btn-lg" type="submit" >Compare PDFs</button>  
+            </div>
+            </div>
+    
+        <p><i>*if you uploaded your own PDF, DO NOT click "See Demo Result" to submit, using the above blue "Upload" button.</i></p>
+        
+        <br>    
+        <div class="card text-center" hidden>
+          <div class="card-body">
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text" id="basic-addon1">Current User: </span>
+              </div>
+              <input type="text" class="form-control" list="texto_pronto" name="user" value="test" id="user" aria-describedby="basic-addon1">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id='user_update'>update</button>
+              </div>
+            </div>
+              <datalist id="texto_pronto">
+                    <option value="test">
+                    <option value="leihong">
+              </datalist>
+          </div>
+        </div>
+    </div>
+    </form>
+    <div class="spinner"></div>
+    <br>
+    </div>
+</div>
+<script>
+    function showSpinner() {
+      // show the spinner
+      document.querySelector('.spinner').style.display = 'block';
+    }
+    
+    $( document ).ready(function(){
+        var user = 'test';
+        var records_old = '<option value="" selected disabled>Select from the dropdown list: </option>'
+        var records_new = '<option value="" selected disabled>Select from the dropdown list: </option>'
+        {% for r_user, record in files %}
+            if (user == "{{r_user}}"){
+                var option = "<option value='{{record}}'>{{record}}</option> ";
+                
+                records_old += option;
+                records_new += option;
+                
+            }
+        {% endfor %}
+        $('#old_pdf').html(records_old);
+        $('#new_pdf').html(records_new);
+    });
+         
+    $("#user").keypress(function(event) {
+        if (event.which == 13) {
+            event.preventDefault();
+            $('#user_update').click();
+            // Add custom function here
+        }
+    });
+         
+    $('#user_update').on("click", function(){
+        var user = $('#user').val();
+        var records_old='<option value="" selected disabled>Select from the dropdown list: </option>'
+        var records_new='<option value="" selected disabled>Select from the dropdown list: </option>'
+        {% for r_user, record in files %}
+            if (user == "{{r_user}}"){
+                var option = "<option value='{{record}}'>{{record}}</option> ";
+                
+                records_old += option;
+                records_new += option;
+                
+            }
+        {% endfor %}
+        console.log(records_new);
+        $('#old_pdf').html(records_old);
+        $('#new_pdf').html(records_new);
+        });
+    
+</script>
+
+<style>
+.spinner {
+  display: none;
+  position: fixed; /* make the div fixed */
+  top: 50%; /* set the top position */
+  right: 50%; /* set the right position */
+  z-index: 1; 
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top-color: #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

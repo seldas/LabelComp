@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% block head %}
+{% load static %}
+<link rel="stylesheet" type="text/css"  href='{% static "js/datatables.min.css" %}' />
+<script src='{% static "js/datatables.min.js"     %}'></script>
+<script src='{% static "js/datatables.mark.min.js"     %}'></script>
+<script src='{% static "js/jquery.mark.min.js"     %}'></script>
+{% endblock%}
+
+{% block body%}
+<div class='container'>
+    <h4> Comparing Result: </h4>
+    <br>
+    <p><b>Old file</b> <font color = 'red'>{{ old_file }}</font> || <b>New file</b> <font color='green'>{{ new_file }}</font></p>
+    <hr>
+    <hr>
+    <div class='row'>
+        <h5>Highlighted AE Terms in AE-related labeling sections <button class='btn btn-secondary' id="dl_aes">Download</button></h5>
+        <p><i>*AE-related labeling sections include the <u>boxed warnings</u> and section 4(<u>contraindications</u>), 5(<u>warnings &amp; precautions</u>), 
+            6(<u>adverse reactions</u>), and 7(<u>drug interactions</u>)</i></p>
+    </div>
+    <div class='row'>    
+        <div >
+            <div class="d-grid gap-2 d-lg-block">
+            <li><font color='Blue' style='font-weight:bold'>Newly added:</font></li>
+            {% for sect, x, pt, soc, context in add_aes %}
+                <button type="button" class="btn btn-outline-primary btnSearch" value="{{x}}">{{x}} 
+                    <span class="badge bg-secondary">Sec. {{sect}}
+                        <span class="visually-hidden">Involved Labeling Section</span>
+                    </span>
+                </button>
+            {% endfor %}
+            </div>
+            <br>
+            <div class="d-grid gap-2 d-lg-block">
+            <li><font color='red' style='font-weight:bold'>Removed:</font></li>
+            {% for sect, x, pt, soc, context in rem_aes %}
+                <button type="button" class="btn btn-outline-danger btnSearch" value="{{x}}">{{x}} 
+                    <span class="badge bg-secondary">Sec. {{sect}}
+                        <span class="visually-hidden">Involved Labeling Section</span>
+                    </span>
+                </button>
+            {% endfor %}
+            </div>
+            <br>
+            <div class="d-grid gap-2 d-lg-block">
+            <li><font color='black' style='font-weight:bold'>Belows are other existed AEs:</font></li>
+            <i>**These AEs were observed in changed texts, but have already been reported elsewhere in the old version; this is <b>NOT</b> all labeling involved AE terms</i><br>
+                {% for sect, x, pt, soc in unchanged_aes %}
+                    <button type="button" class="btn btn-outline-dark btnSearch" value="{{x}}">{{x}} 
+                        <span class="badge bg-secondary">Sec. {{sect}}
+                            <span class="visually-hidden">Involved Labeling Section</span>
+                        </span>
+                    </button>
+                {% endfor %}
+            </div>
+            
+            {{ aes_summary | safe }}
+            
+            <style>
+                .btn{
+                    margin: 2px; 
+                }
+            </style>
+        </div>
+        
+    </div>
+    <hr>
+    <div class='row'>
+        <h5> Sentence Level difference Table: <button type="button" class="btn btn-warning" id="reset_button" >Reset Table</button> </h5>
+        {{ fulltext_summary | safe }}
+        <style>
+            .table-stripped{
+                width:100%
+            }
+            .Old {
+                /* font-weight: bold; */
+                font-style: italic;
+            }
+            .New {
+                /* font-weight: bold; */
+                font-style: italic;
+            }
+            mark {
+                background-color: lightgray;
+                padding: 3;
+                font-weight: bold;
+            }
+        </style>
+    </div>
+    <br><hr>
+    <div class='row'>
+        <h5>Sub-section differences</h5>
+        <br>
+		<div class='col-sm'>
+			{% csrf_token %}
+			<div class="list-group list-group-flush ">
+            <!-- <select name='select_section' id='select_section' class="form-select mb-3" aria-label="Default Labeling section"> -->
+                <button class="select_section list-group-item btn btn-info" value='None' >Summary of Changes. Please seclect a section for details:</button>
+                <div class="d-grid gap-2 d-md-block">
+                    {% for sec in sections %}
+                        <button class="select_section btn btn-link" value={{ sec }}>Section {{ sec }}{% if sec == "0" %}: Boxed Warning{% elif sec == "4" %}: Contraindications{% elif sec == "7" %}: Drug Interactions{% endif %}</button>
+                    {% endfor %}
+                </div>
+			<!-- </select> -->
+            </div>
+		</div>
+	</div>
+    <br>
+    <div class='row'>
+        <h6 id="curr_section"></h6>
+		<div class='col col-md'>
+            <h6><font color='red'>  Old Labeling Section:</font></h6>
+            <p id="section_result_old"></p>
+		</div>
+        <div class='col col-md'>
+            <h6><font color='blue'> New Labeling Section:</font></h6>
+            <p id="section_result_new"></p>
+		</div>
+        <style>
+            p {
+              margin-top: 0em ;
+              margin-bottom: 1em ; /* adjust the value to set the desired indent */
+            }
+            mark2 {
+              background-color: white;
+              color: red;
+            }
+            mark_ae {
+              background-color: yellow;
+            }
+            mark3 {
+              background-color: white;
+              color: blue;
+            }
+        </style>
+    </div>
+     
+    <br><hr>
+    <div class='row'>
+        <h5>Table of Content (ToC) Changes</h5>
+        <div class="alert alert-danger align-items-center" role="alert">
+              This Toc Information is not accurate and is current for dev. use only!
+        </div>
+        {% if not toc_changes %}<p> <font color='green'>None</font> </p>{% endif %}
+        {% for sect, old, new in toc_changes %}
+            <p> <b>[{{ sect }}]</b>, <font color='red'>{{ old }}</font> -> <font color='blue'>{{ new }}</font> </p>
+        {% endfor %}
+    </div>   
+    <div class='row'>
+        
+    <br><hr><br>    
+    </div>
+    <script type="text/javascript" language="javascript">
+        $( document ).ready(function(){
+            $('#summary_table thead tr')
+                .clone(true)
+                .addClass('filters')
+                .appendTo('#summary_table thead');
+ 
+            var table = $('#summary_table').DataTable({
+                dom: 'Bftp',
+                mark: {separateWordSearch: false},
+                buttons: [
+                    'copyHtml5',
+                    'csvHtml5',
+                ],
+                orderCellsTop: true,
+                initComplete: function () {
+                    var api = this.api();
+
+                    // For each column
+                    api.columns().eq(0).each(function (colIdx) {
+                        if (colIdx>0){
+                            // Set the header cell to contain the input element
+                            var cell = $('.filters th').eq(
+                                $(api.column(colIdx).header()).index()
+                            );
+                            var title = 'filter';
+                            $(cell).html('<input type="text" placeholder="' + title + '" />');
+
+                            // On every keypress in this input
+                            $('input',
+                                $('.filters th').eq($(api.column(colIdx).header()).index())
+                            )
+                                .off('keyup change')
+                                .on('change', function (e) {
+                                    // Get the search value
+                                    $(this).attr('title', $(this).val());
+                                    var regexr = '({search})'; //$(this).parents('th').find('select').val();
+
+                                    // Search the column for that value
+                                    api.column(colIdx).search(
+                                        this.value != ''
+                                            ? regexr.replace('{search}', '(((' + this.value + ')))')
+                                            : '',
+                                        this.value != '',
+                                        this.value == ''
+                                    )
+                                        .draw();
+                                })
+                                    .on('keyup', function (e) {
+                                        e.stopPropagation();
+                                        $(this).trigger('change');
+                        })};
+                    });
+                },
+            });
+            
+        });
+        
+        $('#dl_aes').on('click', function() {
+                // Create a new window and set the dimensions
+                var dl_string = ''
+                dl_string += 'Old_file,New_file,Section,Contexts,AE_term,PT_term,SOC_term,Type,Accuracy,Comments On Accuracy\n'
+                {% for sect, ae, pt, soc, context in add_aes%}
+                    dl_string += '"{{old_file}}","{{new_file}}",Sect. {{sect}},"{{context}}", "{{ae}}","{{pt}}","{{soc}}",new,,\n'
+                {% endfor %}
+                {% for sect, ae, pt, soc, context in rem_aes%}
+                    dl_string += '"{{old_file}}","{{new_file}}",Sect. {{sect}},"{{context}}", "{{ae}}","{{pt}}","{{soc}}",removed,,\n'
+                {% endfor %}
+				console.log('{{unchanged_aes}}');
+                //{% for sect, ae, pt, soc in unchanged_aes%}
+                //    dl_string += '"{{old_file}}","{{new_file}}",Sect. {{sect}},N/A, "{{ae}}","{{pt}}","{{soc}}",unchanged,,\n'
+                //{% endfor %}
+
+                const blob = new Blob([dl_string], { type: "text/csv" });
+                const url = URL.createObjectURL(blob); 
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "AE_changesummary.csv";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a); 
+            });
+        
+        $('.btnSearch').on('click', function(){
+            var table = $('#summary_table').DataTable();
+            var filter = $(this).val();
+            table.column(3).search(filter).draw();
+        });
+        
+        $('#reset_button').on('click', function(){
+            var table = $('#summary_table').DataTable();
+            table.column(3).search('').draw();
+        });     
+        $(".select_section").on('click', function(){
+            var section = $(this).val();
+            $("#curr_section").html('Current Section: Section '+section);
+            
+            var fulltext_change_old = '';
+            if (section == 'None'){
+                {% for sec, t, x in summary %}
+                    if ("{{t}}" == "same"){
+                        fulltext_change_old += "<li><font color='black'>{{ x }}</font></li>"
+                    }else{
+                        fulltext_change_old += "<li><font color='red'>{{ x }}</font></li>"
+                    }
+                {% endfor %}
+            }else{
+                {% for sec, t, x in text_old %}
+                    if ('{{sec}}' == section){
+                        if ("{{t}}" == 'old'){
+                            fulltext_change_old += "<p><font color='red'>{{ x | safe}}</font></p>"
+                        }else {
+                            fulltext_change_old += "<p><font color='black'>{{ x | safe}}</font></p>"
+                        }
+                    };
+                {% endfor %}
+            };
+            $("#section_result_old").html(fulltext_change_old);
+                 
+            var fulltext_change_new = '';
+            if (section != 'None'){
+                {% for sec, t, x in text_new %}
+                    if ('{{sec}}' == section){
+                        if ("{{t}}" == 'new'){
+                            fulltext_change_new += "<p><font color='blue'>{{ x | safe}}</font></p>"
+                        }else {
+                            fulltext_change_new += "<p><font color='black'>{{ x | safe}}</font></p>"
+                        }
+                    };
+                {% endfor %}
+            };
+            $("#section_result_new").html(fulltext_change_new);      
+        });
+    </script>
+</div>
+
+{% endblock%}
