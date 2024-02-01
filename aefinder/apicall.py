@@ -14,7 +14,7 @@ spacy.prefer_gpu()
 nlp = spacy.load(cur_model)
 
 openai.organization = ""
-openai.api_key = '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'
+openai.api_key = # your openAI API Key
 
 def AE_annotation_chatGPT(prompt, message, n=1, temperature=0.1):
     if not prompt: return
